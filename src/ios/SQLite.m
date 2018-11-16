@@ -198,8 +198,7 @@ RCT_EXPORT_METHOD(open: (NSDictionary *) options success:(RCTResponseSenderBlock
         
           dbname = [self getDBPath:dbfilename at:dblocation];
         
-          /* Option to create from resource (pre-populated) if db does not exist: */
-          if (![[NSFileManager defaultManager] fileExistsAtPath:dbname] && assetFilePath != NULL) {
+          if (assetFilePath != NULL) {
             RCTLog(@"Copying pre-populated asset to the destination directory");
             [self createFromResource:assetFilePath withDbname:dbname];
           }
@@ -257,12 +256,22 @@ RCT_EXPORT_METHOD(open: (NSDictionary *) options success:(RCTResponseSenderBlock
 
 -(void)createFromResource:(NSString *)prepopulatedDb withDbname:(NSString *)dbname {
   RCTLog(@"Looking for prepopulated DB at: %@", prepopulatedDb);
-  
+  if ([[NSFileManager defaultManager] fileExistsAtPath:dbname]) {
+    RCTLog(@"Found existing prepopulated DB: %@", dbname);
+    NSError *error;
+    BOOL success = [[NSFileManager defaultManager] removeItemAtPath:dbname error:&error];
+    if (success) {
+      RCTLog(@"Removed existing DB");
+    } else {
+      RCTLog(@"Unable to remove existing DB: %@", [error localizedDescription]);
+    }
+  }
+
   if ([[NSFileManager defaultManager] fileExistsAtPath:prepopulatedDb]) {
     RCTLog(@"Found prepopulated DB: %@", prepopulatedDb);
     NSError *error;
     BOOL success = [[NSFileManager defaultManager] copyItemAtPath:prepopulatedDb toPath:dbname error:&error];
-    
+
     if(success) {
       RCTLog(@"Copied prepopulated DB content to: %@", dbname);
     } else {
